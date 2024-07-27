@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Movie Night Drinking Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Virtual Movie Night Drinking Game</h1>
+        <div id="player-info"></div>
+        <button id="drink-button">Take a Drink</button>
+        <div id="drink-container">
+            <div id="drink-level"></div>
+        </div>
+        <div id="player-list"></div>
+        <button id="start-game">Start Game</button>
+        <div id="histogram"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,43 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+}
+
+#app {
+    text-align: center;
+}
+
+#drink-container {
+    width: 200px;
+    height: 300px;
+    border: 2px solid #333;
+    margin: 20px auto;
+    position: relative;
+    background-color: #fff;
+}
+
+#drink-level {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background-color: #ff9900;
+    transition: height 0.5s ease-in-out;
+}
+
+button {
+    margin: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#histogram {
+    width: 80%;
+    height: 300px;
+    margin: 20px auto;
+}
