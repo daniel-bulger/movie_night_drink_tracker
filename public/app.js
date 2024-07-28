@@ -1,150 +1,194 @@
 const socket = io();
 
-let playerName = prompt("Enter your name:");
+let playerName = localStorage.getItem('playerName') || prompt("Enter your name:");
+localStorage.setItem('playerName', playerName);
+
+let currentGame = null;
 let isAdmin = false;
 
-socket.emit('join', playerName);
-
+const gameList = document.getElementById('game-list');
+const createGameButton = document.getElementById('create-game');
+const gameContainer = document.getElementById('game-container');
 const drinkButton = document.getElementById('drink-button');
-const startGameButton = document.getElementById('start-game');
 const playerInfo = document.getElementById('player-info');
 const playerList = document.getElementById('player-list');
-const drinkLevel = document.getElementById('drink-level');
+const drinkContainer = document.getElementById('drink-container');
+const histogramContainer = document.getElementById('histogram');
+const endGameButton = document.getElementById('end-game');
+const adminStatus = document.getElementById('admin-status');
 
-// Add this new button
-const endGameButton = document.createElement('button');
-endGameButton.id = 'end-game';
-endGameButton.textContent = 'End Game';
-endGameButton.style.display = 'none';
-document.getElementById('app').appendChild(endGameButton);
-
-drinkButton.addEventListener('click', () => {
-    socket.emit('drink');
+createGameButton.addEventListener('click', () => {
+  const gameName = prompt("Enter a name for the new game:");
+  if (gameName) {
+    socket.emit('createGame', gameName);
+  }
 });
 
-startGameButton.addEventListener('click', () => {
-    socket.emit('startGame');
-    startGameButton.disabled = true;
-    if (isAdmin) {
-        endGameButton.style.display = 'block';
-    }
+socket.on('gamesList', (games) => {
+  gameList.innerHTML = '';
+  games.forEach(game => {
+    const li = document.createElement('li');
+    li.textContent = game;
+    li.addEventListener('click', () => joinGame(game));
+    gameList.appendChild(li);
+  });
 });
 
-endGameButton.addEventListener('click', () => {
-    socket.emit('endGame');
+socket.on('gameCreated', (gameName) => {
+  joinGame(gameName);
 });
 
-socket.on('setAdmin', (admin) => {
-    isAdmin = admin;
-    if (isAdmin) {
-        endGameButton.style.display = 'block';
-    }
+socket.on("gameJoined", (gameState) => {
+  console.log("Game joined:", gameState);
+  currentGame = gameState;
+  isAdmin = gameState.isAdmin;
+  gameContainer.style.display = "block";
+  updateGameDisplay();
+  updateAdminStatus();
 });
-
+  
 socket.on('updatePlayers', (players) => {
-    playerList.innerHTML = players.map(player => 
-        `<div>${player.name}: ${player.drinks} drinks</div>`
-    ).join('');
+  playerList.innerHTML = players.map(player => 
+    `<div>${player.name}: ${player.drinks} drinks</div>`
+  ).join('');
 });
-
-function updateDrinkDisplay(gameState) {
-    console.log('Updating drink display:', {
-        totalDrinks: gameState.totalDrinks,
-        filledGlasses: gameState.filledGlasses,
-        drinksPerGlass: gameState.drinksPerGlass
-    });
-    
-    const drinkContainer = document.getElementById('drink-container');
-    drinkContainer.innerHTML = ''; // Clear existing glasses
-    
-    const totalGlasses = gameState.filledGlasses + 1;
-    const glassWidth = 100 / totalGlasses; // As a percentage
-    
-    for (let i = 0; i < totalGlasses; i++) {
-        const glass = document.createElement('div');
-        glass.className = 'glass';
-        glass.style.width = `${glassWidth}%`;
-        
-        const drinkLevel = document.createElement('div');
-        drinkLevel.className = 'drink-level';
-        
-        if (i < gameState.filledGlasses) {
-            drinkLevel.style.height = '100%';
-        } else {
-            const remainingDrinks = gameState.totalDrinks - (gameState.filledGlasses * gameState.drinksPerGlass);
-            const levelPercentage = (remainingDrinks / gameState.drinksPerGlass) * 100;
-            drinkLevel.style.height = `${levelPercentage}%`;
-        }
-        
-        glass.appendChild(drinkLevel);
-        drinkContainer.appendChild(glass);
-    }
-
-    console.log('Updated drink display:', gameState);
-}
 
 socket.on('updateDrinks', (gameState) => {
-    const player = gameState.players[Object.keys(gameState.players).find(key => gameState.players[key].name === playerName)];
-    playerInfo.textContent = `You've had ${player.drinks} drinks`;
-    
-    updateDrinkDisplay(gameState);
+  currentGame = gameState;
+  updateGameDisplay();
 });
 
-socket.on('gameStarted', (startTime) => {
-    console.log('Game started at:', startTime);
-    drinkButton.disabled = false;
-});
+socket.on("gameEnded", (gameState) => {
+  currentGame = gameState;
+  drinkButton.disabled = true;
+  endGameButton.disabled = true;
+  displayHistogram(gameState);
+});  
 
-socket.on('gameEnded', (gameState) => {
-    drinkButton.disabled = true;
-    endGameButton.style.display = 'none';
-    displayHistogram(gameState);
-});
-
-function displayHistogram(gameState) {
-    const ctx = document.createElement('canvas');
-    document.getElementById('histogram').appendChild(ctx);
-
-    const gameLength = (new Date() - new Date(gameState.gameStartTime)) / 60000; // in minutes
-    const intervals = 10;
-    const intervalLength = gameLength / intervals;
-
-    const data = new Array(intervals).fill(0);
-
-    gameState.drinkEvents.forEach(drink => {
-        const minutesSinceStart = (new Date(drink.time) - new Date(gameState.gameStartTime)) / 60000;
-        const intervalIndex = Math.floor(minutesSinceStart / intervalLength);
-        if (intervalIndex < intervals) data[intervalIndex]++;
-    });
-
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: Array.from({length: intervals}, (_, i) => `${Math.round(i * intervalLength)}-${Math.round((i + 1) * intervalLength)} min`),
-            datasets: [{
-                label: 'Drinks Taken',
-                data: data,
-                backgroundColor: 'rgba(255, 153, 0, 0.8)'
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Number of Drinks'
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Time Intervals'
-                    }
-                }
-            }
-        }
-    });
+function joinGame(gameName) {
+  console.log('Joining game:', gameName);
+  socket.emit('joinGame', { gameName, playerName });
 }
 
+function updateGameDisplay() {
+  if (!currentGame) return;
+
+  const player =
+    currentGame.players[
+      Object.keys(currentGame.players).find(
+        (key) => currentGame.players[key].name === playerName
+      )
+    ];
+  playerInfo.textContent = `You've had ${player.drinks} drinks`;
+
+  updateDrinkDisplay();
+  updateAdminStatus();
+  endGameButton.style.display = "inline-block";
+}  
+
+function updateAdminStatus() {
+    const adminStatusElement = document.getElementById('admin-status');
+    if (isAdmin) {
+      adminStatusElement.textContent = "You are the admin";
+      adminStatusElement.style.color = "green";
+      endGameButton.disabled = false;
+    } else {
+      adminStatusElement.textContent = "You are not the admin";
+      adminStatusElement.style.color = "red";
+      endGameButton.disabled = true;
+    }
+  }
+  
+
+function updateDrinkDisplay() {
+  drinkContainer.innerHTML = '';
+  
+  const totalGlasses = currentGame.filledGlasses + 1;
+  const glassWidth = 100 / totalGlasses;
+  
+  for (let i = 0; i < totalGlasses; i++) {
+    const glass = document.createElement('div');
+    glass.className = 'glass';
+    glass.style.width = `${glassWidth}%`;
+    
+    const drinkLevel = document.createElement('div');
+    drinkLevel.className = 'drink-level';
+    
+    if (i < currentGame.filledGlasses) {
+      drinkLevel.style.height = '100%';
+    } else {
+      const remainingDrinks = currentGame.totalDrinks - (currentGame.filledGlasses * currentGame.drinksPerGlass);
+      const levelPercentage = (remainingDrinks / currentGame.drinksPerGlass) * 100;
+      drinkLevel.style.height = `${levelPercentage}%`;
+    }
+    
+    glass.appendChild(drinkLevel);
+    drinkContainer.appendChild(glass);
+  }
+}
+
+drinkButton.addEventListener("click", () => {
+  console.log("Drink button clicked");
+  if (currentGame) {
+    console.log("Emitting drink event for game:", currentGame.name);
+    socket.emit("drink", currentGame.name);
+  } else {
+    console.log("No current game set");
+  }
+});
+
+endGameButton.addEventListener("click", () => {
+  if (currentGame && isAdmin) {
+    socket.emit("endGame", currentGame.name);
+  }
+});
+  
+function displayHistogram(gameState) {
+  histogramContainer.innerHTML = '';
+  const canvas = document.createElement('canvas');
+  histogramContainer.appendChild(canvas);
+
+  const gameLength = (new Date(gameState.gameEndTime) - new Date(gameState.gameStartTime)) / 60000; // in minutes
+  const intervals = 10;
+  const intervalLength = gameLength / intervals;
+
+  const data = new Array(intervals).fill(0);
+
+  gameState.drinkEvents.forEach(drink => {
+    const minutesSinceStart = (new Date(drink.time) - new Date(gameState.gameStartTime)) / 60000;
+    const intervalIndex = Math.floor(minutesSinceStart / intervalLength);
+    if (intervalIndex < intervals) data[intervalIndex]++;
+  });
+
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: Array.from({length: intervals}, (_, i) => `${Math.round(i * intervalLength)}-${Math.round((i + 1) * intervalLength)} min`),
+      datasets: [{
+        label: 'Drinks Taken',
+        data: data,
+        backgroundColor: 'rgba(255, 153, 0, 0.8)'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Number of Drinks'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Time Intervals'
+          }
+        }
+      }
+    }
+  });
+}
+
+socket.emit('getGames');

@@ -9,17 +9,26 @@
 <body>
     <div id="app">
         <h1>Virtual Movie Night Drinking Game</h1>
-        <div id="player-info"></div>
-        <button id="drink-button">Take a Drink</button>
-        <div id="drink-container">
-            <!-- Glasses will be dynamically added here -->
+        
+        <div id="game-selection">
+            <h2>Available Games</h2>
+            <ul id="game-list"></ul>
+            <button id="create-game">Create New Game</button>
         </div>
-        <div id="player-list"></div>
-        <button id="start-game">Start Game</button>
-        <div id="histogram"></div>
+
+        <div id="game-container" style="display: none;">
+            <div id="admin-status"></div>
+            <div id="player-info"></div>
+            <button id="drink-button">Take a Drink</button>
+            <div id="drink-container"></div>
+            <div id="player-list"></div>
+            <button id="end-game">End Game</button>
+            <div id="histogram"></div>
+        </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
