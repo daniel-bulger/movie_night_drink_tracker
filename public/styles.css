@@ -13,21 +13,32 @@ body {
 }
 
 #drink-container {
-    width: 200px;
+    width: 80%;
     height: 300px;
-    border: 2px solid #333;
     margin: 20px auto;
-    position: relative;
-    background-color: #fff;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
 }
 
-#drink-level {
+.glass {
+    height: 100%;
+    width: 100px;
+    border: 2px solid #333;
+    background-color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.drink-level {
     position: absolute;
     bottom: 0;
+    left: 0;
     width: 100%;
     background-color: #ff9900;
     transition: height 0.5s ease-in-out;
 }
+
 
 button {
     margin: 5px;
